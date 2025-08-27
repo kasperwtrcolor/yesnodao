@@ -1285,7 +1285,7 @@ function App() {
       </main>
       <footer className="w-full pt-10 pb-6 relative">
         <div className="max-w-full mx-auto px-[100px] flex justify-center">
-          <a href="https://x.com/kasperwtrcolor" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-10 h-10 bg-white border-2 border-black rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)] hover:bg-[#ffde00] transition-colors">
+          <a href="https://x.com/yesnodao" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-10 h-10 bg-white border-2 border-black rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)] hover:bg-[#ffde00] transition-colors">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0a3d62" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
             </svg>
