@@ -11,7 +11,7 @@
 - [License](#license)
 
 ## About
-YESNODAO is an adorable pixel-art prediction market built on the Solana blockchain. Users can stake 0.001 SOL on daily yes/no questions, predict outcomes, and earn rewards. Correct guessers split the pot, with cute animations celebrating winning predictions in vibrant, Disney-inspired colors.
+YESNODAO is an adorable pixel-art prediction market built on the Solana blockchain. Users can stake X SOL on daily yes/no questions, predict outcomes, and earn rewards. Correct guessers split the pot, with cute animations celebrating winning predictions in vibrant, Disney-inspired colors.
 
 ## Features
 -   **Decentralized Prediction Market:** Stake SOL on various Yes/No questions.
@@ -48,7 +48,7 @@ The application leverages Devbase for all its data persistence. Here's an overvi
 Stores all prediction questions.
 -   **Fields:** `title`, `description`, `imageUrl`, `expiresAt`, `outcome`, `totalPool`, `resolvedAt`, `voteAmount`, `isDeleted`.
 -   **Rules:**
-    -   `create`: Only the designated admin wallet (`6SxLVfFovSjR2LAFcJ5wfT6RFjc8GxsscRekGnLq8BMe`) can create new questions.
+    -   `create`: Only the designated admin wallet (`X`) can create new questions.
     -   `update`: Only the admin can update questions (e.g., setting `outcome`, `resolvedAt`, `totalPool`, `isDeleted`).
 -   **Note:** `totalPool` is dynamically updated based on votes.
 
@@ -74,7 +74,7 @@ Records the 5% protocol fee collected from resolved question pools.
 -   **Rules:**
     -   `create`: Only the admin wallet can create fee records.
 -   **Actions:**
-    -   `create`: Transfers the `amount` of SOL from the app's vault (`$VAULT_ADDRESS`) to the admin's wallet (`6SxLVfFovSjR2LAFcJ5wfT6RFjc8GxsscRekGnLq8BMe`).
+    -   `create`: Transfers the `amount` of SOL from the app's vault (`$VAULT_ADDRESS`) to the admin's wallet (`X`).
 
 ## Getting Started
 
