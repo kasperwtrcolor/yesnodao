@@ -19,7 +19,6 @@ YESNODAO is an adorable pixel-art prediction market built on the Solana blockcha
 -   **Solana Integration:** Secure and fast transactions powered by the Solana blockchain.
 -   **Reward System:** Correct predictors split 95% of the total pool, with 5% allocated as protocol fees.
 -   **User Profiles:** Track your prediction history, win/loss record, and total earnings.
--   **X (Twitter) Verification:** Users must verify their X account to create predictions, enhancing accountability.
 -   **Social Sharing:** Share your predictions and stats directly to X.
 -   **Admin Controls:**
     -   Create new prediction questions.
