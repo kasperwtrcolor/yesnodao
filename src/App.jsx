@@ -157,7 +157,7 @@ function QuestionCard({
   }, [question.votes, userWallet]);
   const handleShare = () => {
     const baseUrl = "https://twitter.com/intent/tweet";
-    const text = `I just predicted "${userVote.toUpperCase()}" on "${question.title}" at YesNoDAO! Join me and predict the future to get paid for it! https://dev.fun/p/27906a144d55a012351a built with @devfunpump`;
+    const text = `I just predicted "${userVote.toUpperCase()}" on "${question.title}" at YesNoDAO! Join me and predict the future to get paid for it! yesnodao.fun built with @devfunpump`;
     const url = `${baseUrl}?text=${encodeURIComponent(text)}`;
     openLink(url);
   };
@@ -278,6 +278,47 @@ function CreatePredictionModal({
   const [expiresAt, setExpiresAt] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [voteAmount, setVoteAmount] = useState("0.001");
+  const [plFixtures, setPlFixtures] = useState([]);
+  const [plTeams, setPlTeams] = useState([]);
+  const [, setSelectedFixture] = useState("");
+  const [loadingFixtures, setLoadingFixtures] = useState(false);
+  const [showFixtureSelection, setShowFixtureSelection] = useState(false);
+  const fetchPLData = async () => {
+    setLoadingFixtures(true);
+    try {
+      const corsProxy = 'https://corsproxy.io/?';
+      const [bootstrapResponse, fixturesResponse] = await Promise.all([fetch(`${corsProxy}${encodeURIComponent('https://fantasy.premierleague.com/api/bootstrap-static/')}`), fetch(`${corsProxy}${encodeURIComponent('https://fantasy.premierleague.com/api/fixtures/')}`)]);
+      const bootstrapData = await bootstrapResponse.json();
+      const fixturesData = await fixturesResponse.json();
+      setPlTeams(bootstrapData.teams);
+      const now = new Date();
+      const upcomingFixtures = fixturesData.filter(fixture => {
+        const kickoffTime = new Date(fixture.kickoff_time);
+        return kickoffTime > now && fixture.finished === false;
+      }).slice(0, 50).sort((a, b) => new Date(a.kickoff_time) - new Date(b.kickoff_time));
+      setPlFixtures(upcomingFixtures);
+    } catch (error) {
+      console.error('Error fetching PL data:', error);
+    } finally {
+      setLoadingFixtures(false);
+    }
+  };
+  const handleFixtureSelect = fixtureId => {
+    const fixture = plFixtures.find(f => f.id.toString() === fixtureId);
+    if (!fixture) return;
+    const homeTeam = plTeams.find(t => t.id === fixture.team_h);
+    const awayTeam = plTeams.find(t => t.id === fixture.team_a);
+    if (homeTeam && awayTeam) {
+      const kickoffTime = new Date(fixture.kickoff_time);
+      const expireTime = new Date(kickoffTime.getTime() - 60 * 60 * 1000);
+      setTitle(`Will ${homeTeam.name} beat ${awayTeam.name}?`);
+      setDescription(`Premier League Gameweek ${fixture.event || 'TBD'} - ${homeTeam.name} vs ${awayTeam.name}`);
+      setImageUrl(`https://resources.premierleague.com/premierleague/badges/t${homeTeam.code}.png`);
+      setExpiresAt(expireTime.toISOString().slice(0, 16));
+    }
+    setSelectedFixture(fixtureId);
+    setShowFixtureSelection(false);
+  };
   const handleSubmit = e => {
     e.preventDefault();
     onSubmit({
@@ -295,6 +336,17 @@ function CreatePredictionModal({
     setImageUrl("");
     setExpiresAt("");
     setVoteAmount("0.001");
+    setSelectedFixture("");
+    setShowFixtureSelection(false);
+  };
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setImageUrl("");
+    setExpiresAt("");
+    setVoteAmount("0.001");
+    setSelectedFixture("");
+    setShowFixtureSelection(false);
   };
   if (!isOpen) return null;
   return <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
@@ -307,17 +359,49 @@ function CreatePredictionModal({
     }} exit={{
       scale: 0.8,
       opacity: 0
-    }} className="w-full max-w-md">
+    }} className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <PixelCard className="w-full">
           <div className="flex justify-between items-center mb-4">
             <PixelatedText size="lg" className="text-[#6c5ce7]">Create Prediction</PixelatedText>
-            <motion.button onClick={onClose} className="text-[#0a3d62] hover:text-[#ff3b30]" whileHover={{
+            <motion.button onClick={() => {
+            resetForm();
+            onClose();
+          }} className="text-[#0a3d62] hover:text-[#ff3b30]" whileHover={{
             scale: 1.1
           }} whileTap={{
             scale: 0.9
           }}>
               <PixelatedText>✕</PixelatedText>
             </motion.button>
+          </div>
+
+          <div className="mb-4">
+            <PixelButton color="blue" onClick={() => {
+            if (plFixtures.length === 0) fetchPLData();
+            setShowFixtureSelection(!showFixtureSelection);
+          }} className="w-full mb-4">
+              {showFixtureSelection ? 'Hide' : 'Select'} Premier League Fixture
+            </PixelButton>
+            
+            {showFixtureSelection && <div className="mb-4 max-h-60 overflow-y-auto border-2 border-black rounded-lg bg-white">
+                {loadingFixtures ? <div className="p-4 text-center">
+                    <PixelatedText size="sm" className="text-[#0a3d62]">Loading fixtures...</PixelatedText>
+                  </div> : plFixtures.length === 0 ? <div className="p-4 text-center">
+                    <PixelatedText size="sm" className="text-[#0a3d62]">No upcoming fixtures found</PixelatedText>
+                  </div> : plFixtures.map(fixture => {
+              const homeTeam = plTeams.find(t => t.id === fixture.team_h);
+              const awayTeam = plTeams.find(t => t.id === fixture.team_a);
+              const kickoffTime = new Date(fixture.kickoff_time);
+              return <div key={fixture.id} className="p-3 border-b border-gray-200 hover:bg-[#33e6ff] hover:bg-opacity-20 cursor-pointer transition-colors" onClick={() => handleFixtureSelect(fixture.id.toString())}>
+                        <PixelatedText size="sm" className="text-[#0a3d62]">
+                          {homeTeam?.name || 'TBD'} vs {awayTeam?.name || 'TBD'}
+                        </PixelatedText>
+                        <PixelatedText size="sm" className="text-[#0a3d62] opacity-70">
+                          GW{fixture.event || '?'} - {kickoffTime.toLocaleDateString()} {kickoffTime.toLocaleTimeString()}
+                        </PixelatedText>
+                      </div>;
+            })}
+              </div>}
           </div>
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
@@ -351,8 +435,13 @@ function CreatePredictionModal({
               <input type="number" step="0.001" min="0.001" value={voteAmount} onChange={e => setVoteAmount(e.target.value)} className="w-full px-3 py-2 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6c5ce7] shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)] font-body" required />
               <p className="mt-1 text-xs text-[#0a3d62] opacity-70 font-body">Amount users will pay to vote on this prediction</p>
             </div>
-            <div className="flex justify-end">
-              <PixelButton color="pink" className="w-full">
+            <div className="flex justify-end gap-3">
+              <PixelButton color="red" onClick={() => {
+              resetForm();
+            }} type="button">
+                Clear Form
+              </PixelButton>
+              <PixelButton color="pink" className="flex-1">
                 Create Prediction
               </PixelButton>
             </div>
@@ -471,6 +560,116 @@ function ResolveQuestionModal({
       </motion.div>
     </div>;
 }
+function WelcomeModal({
+  isOpen,
+  onClose
+}) {
+  if (!isOpen) return null;
+  return <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-2 sm:p-4">
+      <motion.div initial={{
+      scale: 0.5,
+      opacity: 0,
+      rotate: -10
+    }} animate={{
+      scale: 1,
+      opacity: 1,
+      rotate: 0
+    }} exit={{
+      scale: 0.5,
+      opacity: 0,
+      rotate: 10
+    }} transition={{
+      type: "spring",
+      stiffness: 200,
+      damping: 20
+    }} className="w-full max-w-lg">
+        <PixelCard className="w-full border-4 border-[#ffde00]">
+          <div className="bg-gradient-to-r from-[#ff69b4] via-[#6c5ce7] to-[#3498db] -m-4 mb-4 p-4 border-b-4 border-black">
+            <motion.div initial={{
+            y: -20
+          }} animate={{
+            y: 0
+          }} transition={{
+            delay: 0.2
+          }}>
+              <PixelatedText size="xl" className="text-white text-center mb-2">WELCOME TO</PixelatedText>
+              <PixelatedText size="2xl" className="text-white text-center text-[#ffde00]">YesNoDAO</PixelatedText>
+            </motion.div>
+          </div>
+          <div className="space-y-4">
+            <motion.div initial={{
+            x: -50,
+            opacity: 0
+          }} animate={{
+            x: 0,
+            opacity: 1
+          }} transition={{
+            delay: 0.3
+          }} className="bg-[#ff69b4] bg-opacity-20 border-2 border-[#ff69b4] rounded-lg p-3">
+              <PixelatedText size="md" className="text-[#ff69b4] mb-2">📊 PREDICT</PixelatedText>
+              <PixelatedText size="sm" className="text-[#0a3d62]">
+                Vote YES or NO on daily questions. Each vote costs a small amount of SOL.
+              </PixelatedText>
+            </motion.div>
+            <motion.div initial={{
+            x: 50,
+            opacity: 0
+          }} animate={{
+            x: 0,
+            opacity: 1
+          }} transition={{
+            delay: 0.5
+          }} className="bg-[#4cd964] bg-opacity-20 border-2 border-[#4cd964] rounded-lg p-3">
+              <PixelatedText size="md" className="text-[#4cd964] mb-2">⏰ WAIT</PixelatedText>
+              <PixelatedText size="sm" className="text-[#0a3d62]">
+                Questions resolve after expiration. Admins set the final outcome.
+              </PixelatedText>
+            </motion.div>
+            <motion.div initial={{
+            x: -50,
+            opacity: 0
+          }} animate={{
+            x: 0,
+            opacity: 1
+          }} transition={{
+            delay: 0.7
+          }} className="bg-[#ffde00] bg-opacity-20 border-2 border-[#ffde00] rounded-lg p-3">
+              <PixelatedText size="md" className="text-[#ffde00] mb-2">💰 WIN</PixelatedText>
+              <PixelatedText size="sm" className="text-[#0a3d62]">
+                Correct guessers split 95% of the pool. Claim your rewards!
+              </PixelatedText>
+            </motion.div>
+            <motion.div initial={{
+            scale: 0.8,
+            opacity: 0
+          }} animate={{
+            scale: 1,
+            opacity: 1
+          }} transition={{
+            delay: 0.9
+          }} className="bg-[#33e6ff] bg-opacity-20 border-2 border-[#33e6ff] p-3 rounded-lg">
+              <PixelatedText size="sm" className="text-[#0a3d62] text-center">
+                🎯 ONE VOTE PER QUESTION - CHOOSE WISELY!
+              </PixelatedText>
+            </motion.div>
+          </div>
+          <motion.div initial={{
+          y: 20,
+          opacity: 0
+        }} animate={{
+          y: 0,
+          opacity: 1
+        }} transition={{
+          delay: 1.1
+        }} className="mt-6 flex justify-center">
+            <PixelButton color="pink" onClick={onClose} className="px-8">
+              LET'S GO!
+            </PixelButton>
+          </motion.div>
+        </PixelCard>
+      </motion.div>
+    </div>;
+}
 function InfoModal({
   isOpen,
   onClose
@@ -502,7 +701,7 @@ function InfoModal({
             <div>
               <PixelatedText size="md" className="text-[#ff69b4] mb-2">1. Make a Prediction</PixelatedText>
               <PixelatedText size="sm" className="text-[#0a3d62]">
-                Each vote costs 0.001 SOL. Choose YES or NO on any open question.
+                Each question has its own vote cost in SOL. Choose YES or NO on any open question.
               </PixelatedText>
             </div>
             <div>
@@ -723,7 +922,7 @@ function ProfilePage({
           </PixelatedText>
           <div className="flex justify-center mt-4">
             <PixelButton color="blue" onClick={() => {
-            const text = `I've made ${userStats.totalVotes} predictions on YesNoDAO with a ${userStats.correctVotes > 0 ? Math.round(userStats.correctVotes / (userStats.correctVotes + userStats.incorrectVotes) * 100) : 0}% win rate! Join me to predict the future and get paid for it! https://dev.fun/p/27906a144d55a012351a built with @devfunpump`;
+            const text = `I've made ${userStats.totalVotes} predictions on YesNoDAO with a ${userStats.correctVotes > 0 ? Math.round(userStats.correctVotes / (userStats.correctVotes + userStats.incorrectVotes) * 100) : 0}% win rate! Join me to predict the future and get paid for it! yesnodao.fun built with @devfunpump`;
             const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
             openLink(url);
           }} className="flex items-center gap-2">
@@ -750,12 +949,19 @@ function App() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showResolveModal, setShowResolveModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [transactionInProgress, setTransactionInProgress] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [allVotes, setAllVotes] = useState([]);
   const [allClaims, setAllClaims] = useState([]);
   const [currentView, setCurrentView] = useState('main');
   const isAdmin = userWallet === '6SxLVfFovSjR2LAFcJ5wfT6RFjc8GxsscRekGnLq8BMe';
+  useEffect(() => {
+    const hasSeenWelcome = localStorage.getItem('yesnodao_welcome_seen');
+    if (!hasSeenWelcome) {
+      setShowWelcomeModal(true);
+    }
+  }, []);
   useEffect(() => {
     fetchQuestions();
     const interval = setInterval(() => {
@@ -1081,6 +1287,12 @@ function App() {
       alert("Failed to delete prediction. Please try again.");
     }
   };
+  const handleSharePrediction = question => {
+    const baseUrl = "https://twitter.com/intent/tweet";
+    const text = `YESNODAO Prediction: ${question.title}\n\nPlace your bets now! 🎯\n\nyesnodao.fun`;
+    const url = `${baseUrl}?text=${encodeURIComponent(text)}`;
+    openLink(url);
+  };
   const openResolveModal = question => {
     setSelectedQuestion(question);
     setShowResolveModal(true);
@@ -1104,6 +1316,10 @@ function App() {
       {showCelebration && <Confetti />}
       {showCreateModal && <CreatePredictionModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} onSubmit={handleCreatePrediction} />}
       {showResolveModal && <ResolveQuestionModal isOpen={showResolveModal} onClose={() => setShowResolveModal(false)} onResolve={handleResolvePrediction} question={selectedQuestion} />}
+      {showWelcomeModal && <WelcomeModal isOpen={showWelcomeModal} onClose={() => {
+      setShowWelcomeModal(false);
+      localStorage.setItem('yesnodao_welcome_seen', 'true');
+    }} />}
       {showInfoModal && <InfoModal isOpen={showInfoModal} onClose={() => setShowInfoModal(false)} />}
       {transactionInProgress && <TransactionProgress isVisible={transactionInProgress} />}
       <header className="bg-gradient-to-r from-[#6c5ce7] via-[#ff69b4] to-[#3498db] py-4 sm:py-6 px-[100px] mb-6 sm:mb-8 shadow-lg border-b-2 border-black relative overflow-visible">
@@ -1210,6 +1426,29 @@ function App() {
               </div>
             </div>
         {isAdmin && <AdminMetricsCard questions={questions} votes={allVotes} claims={allClaims} />}
+        
+        {isAdmin && activeTab === "active" && filteredQuestions.length > 0 && <div className="mb-8">
+            <PixelCard className="border-[#3498db]">
+              <PixelatedText size="lg" className="text-[#0a3d62] mb-4">Admin Controls: Share Active Predictions</PixelatedText>
+              <div className="space-y-4">
+                {filteredQuestions.map(question => <div key={question.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b-2 border-[#33e6ff] border-opacity-30 pb-3 gap-3">
+                    <div className="flex-1">
+                      <PixelatedText size="md" className="text-[#0a3d62] break-words">{question.title}</PixelatedText>
+                      <PixelatedText size="sm" className="text-[#0a3d62] opacity-80">
+                        Expires: {new Date(question.expiresAt).toLocaleString()}
+                      </PixelatedText>
+                    </div>
+                    <PixelButton color="blue" onClick={() => handleSharePrediction(question)} className="flex items-center gap-2">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
+                      </svg>
+                      Share
+                    </PixelButton>
+                  </div>)}
+              </div>
+            </PixelCard>
+          </div>}
+
         {isAdmin && expiredUnresolvedQuestions.length > 0 && <div className="mb-8">
             <PixelCard className="border-[#ffde00]">
               <PixelatedText size="lg" className="text-[#0a3d62] mb-4">Admin Controls: Resolve Predictions</PixelatedText>
@@ -1226,22 +1465,6 @@ function App() {
               </div>
             </PixelCard>
           </div>}
-            {isAdmin && expiredUnresolvedQuestions.length > 0 && <div className="mb-8">
-                <PixelCard className="border-[#ffde00]">
-                  <PixelatedText size="lg" className="text-[#0a3d62] mb-4">Admin Controls: Resolve Predictions</PixelatedText>
-                  <div className="space-y-4">
-                    {expiredUnresolvedQuestions.map(question => <div key={question.id} className="flex justify-between items-center border-b-2 border-[#33e6ff] pb-3">
-                        <div>
-                          <PixelatedText size="md" className="text-[#0a3d62]">{question.title}</PixelatedText>
-                          <PixelatedText size="sm" className="text-[#0a3d62] opacity-80">Expired: {new Date(question.expiresAt).toLocaleString()}</PixelatedText>
-                        </div>
-                        <PixelButton color="purple" onClick={() => openResolveModal(question)}>
-                          Resolve
-                        </PixelButton>
-                      </div>)}
-                  </div>
-                </PixelCard>
-              </div>}
             {isAdmin && activeTab === "resolved" && <div className="mb-8">
                 <PixelCard className="border-[#ff3b30]">
                   <PixelatedText size="lg" className="text-[#0a3d62] mb-4">Admin Controls: Delete Resolved Predictions</PixelatedText>
